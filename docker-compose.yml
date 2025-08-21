@@ -1,0 +1,63 @@
+# RSS AI Scorer - Production Docker Compose
+# Deploys the complete RSS AI scoring system
+
+version: '3.8'
+
+services:
+  rss-ai-scorer:
+    image: freshrss-rss-ai-scorer:latest
+    container_name: rss-ai-scorer-prod
+    restart: unless-stopped
+    
+    ports:
+      - "8000:8000"
+    
+    environment:
+      # User and timezone settings
+      - PUID=1000
+      - PGID=1000  
+      - TZ=Europe/Berlin
+      
+      # Application URLs
+      - DASHBOARD_BASE_URL=https://news.clindevdep.com
+      - FRESHRSS_BASE_URL=http://192.168.90.1:8085
+      
+      # FreshRSS Authentication
+      - FRESHRSS_USERNAME=nofchi
+      - FRESHRSS_API_PASSWORD=8%PWANOrs46DE^ad
+      - FRESHRSS_API_TOKEN=nofchi/b52590a146c4cffbff179b401ce333eadceb88f9
+      
+      # API Keys (set in host .env file)
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      
+      # Email Configuration
+      - EMAIL_FROM_NAME=RSS Newsletter
+      - NEWSLETTER_RECIPIENT=nofchi@gmail.com
+    
+    volumes:
+      # Persistent data storage
+      - /home/clindevdep/docker/appdata/rss-ai-scorer:/app/data
+      - /home/clindevdep/docker/appdata/rss-ai-scorer/articles.db:/app/articles.db
+      
+      # Configuration backup
+      - /home/clindevdep/AI/FreshRSS/rss_ai_scorer/topic_scores_100_personalized.json:/app/topic_scores_100_personalized.json:ro
+    
+    networks:
+      - default
+      - traefik
+    
+    labels:
+      # Traefik configuration for HTTPS
+      - "traefik.enable=true"
+      - "traefik.http.routers.rss-ai-scorer.rule=Host(`news.clindevdep.com`)"
+      - "traefik.http.routers.rss-ai-scorer.entrypoints=websecure"
+      - "traefik.http.routers.rss-ai-scorer.tls.certresolver=cloudflare"
+      - "traefik.http.services.rss-ai-scorer.loadbalancer.server.port=8000"
+
+networks:
+  traefik:
+    external: true
+  default:
+    driver: bridge
